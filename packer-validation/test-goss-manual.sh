@@ -130,9 +130,9 @@ fi
 : "${POOL_NAME:=$SUITE_NAME}"
 
 # SCRIPT_DIR is where we look for the packer-validation/ directory to scp to the VM.
-# When run from the project root, packer-validation/ is right here.
-# SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SCRIPT_DIR=$(pwd)
+# We resolve the project root (one level up from this script's directory) so that
+# run-kvm.sh can be found at ./run-kvm.sh regardless of the caller's working directory.
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o pubkeyauthentication=no"
 DROPBEAR_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5"
 MAIN_USER="packer"
@@ -188,7 +188,7 @@ fi
 
 # Step 2: Boot VM
 echo "[2/6] Booting VM..."
-cd $HOME/repos/ZFS-root
+cd "$SCRIPT_DIR"
 
 if [[ "$VARIANT" == "NOENC" ]]; then
     ./run-kvm.sh --ssh $SSH_PORT "$BUILD_DIR"
@@ -254,7 +254,7 @@ fi
 
 # Step 4: Install goss on VM
 echo "[4/6] Installing goss on VM..."
-sshpass -p 'packer' ssh $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost "if [ ! -e /home/${MAIN_USER}/.local/bin/goss ] ; then curl -fsSL https://goss.rocks/install | GOSS_DST=/home/${MAIN_USER}/.local/bin sh ; fi"
+sshpass -p 'packer' ssh $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost "mkdir -p /home/${MAIN_USER}/.local/bin && if [ ! -e /home/${MAIN_USER}/.local/bin/goss ] ; then curl -fsSL https://goss.rocks/install | GOSS_DST=/home/${MAIN_USER}/.local/bin sh ; fi"
 
 # Step 5: Copy test files to VM
 echo "[5/6] Copying test files..."
@@ -268,7 +268,7 @@ echo "GOSS TEST OUTPUT"
 echo "=========================================="
 
 # Run goss, capturing output to a temp file while also streaming to stdout
-GOSS_TMPFILE=$(mktemp /tmp/goss-output-XXXXXX.txt)
+GOSS_TMPFILE=$(mktemp /tmp/goss-output-XXXXXX)
 sshpass -p 'packer' ssh $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost \
     "echo packer | sudo -S VALIDATION_DIR=/home/${MAIN_USER}/packer-validation /home/${MAIN_USER}/packer-validation/run-validation.sh" \
     | tee "$GOSS_TMPFILE" || true

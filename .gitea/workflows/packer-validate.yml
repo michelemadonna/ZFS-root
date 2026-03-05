@@ -1,0 +1,121 @@
+# Packer Validation Workflow for ZFS-root
+# Boots packer-built QCOW2 images and runs goss tests against them
+#
+# Finds builds in /qemu/builds/ that don't yet have a goss-validation-*.txt
+# and runs test-goss-manual.sh against each one.
+#
+# Uses hashicorp/packer:light (Alpine-based) for consistency with the build
+# workflow. Only needs: qemu-system-x86_64, openssh-client, sshpass, netcat-openbsd.
+#
+# Alternative: plain Alpine also works and is even leaner:
+#   image: alpine:latest
+#   (same apk install step, no packer tooling overhead)
+#
+# Local testing:
+#   act -j validate -W .gitea/workflows/packer-validate.yml
+#
+# To test a single build:
+#   act -j validate -W .gitea/workflows/packer-validate.yml --env BUILD_DIR=/qemu/builds/packer-noble-NOENC-...
+
+name: Packer Validate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'  # Daily at 4am
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/packer:light
+      options: --privileged --device /dev/kvm
+      volumes:
+        - /qemu/builds:/qemu/builds
+        - /usr/share/OVMF:/usr/share/OVMF:ro
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apk add --no-cache \
+            qemu-system-x86_64 \
+            openssh-client \
+            sshpass \
+            netcat-openbsd
+
+      - name: Find unvalidated builds
+        id: find
+        run: |
+          touch unvalidated.txt
+          for dir in /qemu/builds/packer-*/; do
+            # Skip if not a directory
+            [ -d "$dir" ] || continue
+            # Skip incomplete builds (no build-metadata.txt means packer didn't finish)
+            if [ ! -f "${dir}build-metadata.txt" ]; then
+              echo "Skipping incomplete build (no build-metadata.txt): $dir"
+              continue
+            fi
+            # Skip if already validated
+            if ls "${dir}"goss-validation-*.txt >/dev/null 2>&1; then
+              echo "Already validated: $dir"
+            else
+              echo "Needs validation: $dir"
+              echo "$dir" >> unvalidated.txt
+            fi
+          done
+
+          if [ ! -s unvalidated.txt ]; then
+            echo "all_validated=true" >> "$GITHUB_OUTPUT"
+            echo "All builds already validated — nothing to do"
+          else
+            echo "all_validated=false" >> "$GITHUB_OUTPUT"
+            echo "Found $(wc -l < unvalidated.txt) build(s) to validate"
+          fi
+
+      - name: Validate each build
+        if: steps.find.outputs.all_validated != 'true'
+        run: |
+          FAILED=0
+          while IFS= read -r build_dir; do
+            echo ""
+            echo "=========================================="
+            echo "Validating: $build_dir"
+            echo "=========================================="
+            if ./packer-validation/test-goss-manual.sh "$build_dir"; then
+              echo "✅ Passed: $build_dir"
+            else
+              echo "❌ Failed: $build_dir"
+              FAILED=$((FAILED + 1))
+            fi
+          done < unvalidated.txt
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo ""
+            echo "$FAILED build(s) failed validation"
+            exit 1
+          fi
+
+      - name: Validation summary
+        if: always()
+        run: |
+          echo "## Validation Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ! -s unvalidated.txt ] 2>/dev/null; then
+            echo "✅ All builds already validated — nothing to do" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| Build | Status | Results File |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|-------|--------|--------------|" >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r build_dir; do
+              name=$(basename "$build_dir")
+              results=$(ls "${build_dir}"goss-validation-*.txt 2>/dev/null | tail -1)
+              if [ -n "$results" ]; then
+                echo "| $name | ✅ Validated | $(basename "$results") |" >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "| $name | ❌ Not validated | — |" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done < unvalidated.txt
+          fi
