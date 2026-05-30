@@ -8,7 +8,7 @@ _Current issue: SecureBoot with locally-built kernel/initramfs for ZFSBootMenu i
 
 ## tl;dr
 
-- Boot an Ubuntu live-cd, like [ubuntu-24.04.1-live-server-amd64.iso](https://releases.ubuntu.com/noble/ubuntu-24.04.1-live-server-amd64.iso) and select *Try or install Ubuntu server*
+- Boot an Ubuntu live-cd, like [ubuntu-26.04-live-server-amd64.iso](https://releases.ubuntu.com/resolute/ubuntu-26.04-live-server-amd64.iso) and select *Try or install Ubuntu server*
 - At the language selection prompt, hit `ctrl-z` to put the installer into the background and get a root shell
 - Clone the **ZFS-root** repo
     ```
@@ -16,11 +16,14 @@ _Current issue: SecureBoot with locally-built kernel/initramfs for ZFSBootMenu i
     ```
 - Optionally copy the `ZFS-root.conf.example` to `ZFS-root.conf` and edit to suit.
     NOTE: The **WIPE_FRESH** parameter determines if this will be a full system wipe for a fresh install, or just the creation of a new distro dataset
-    - WIPE_FRESH=y
-        Wipe the selected disks and do a full clean install.  It will not touch unselected disks.
-    - WIPE_FRESH=n
-        Only create a new dataset like `<poolname>/ROOT/plucky` with a clean root install.  This will utilize the existing `/boot/efi` ESP partition mount, as well as the existing `<poolname>/home/<username>` default user home dataset/directory and `<poolname>/home/root` main _root_ user dataset/directory.
-    The new dataset will be selectable via ZFSBootMenu
+    * `WIPE_FRESH=y`
+
+      Wipe the selected disks and do a full clean install.  It will not touch unselected disks.
+
+    * `WIPE_FRESH=n`
+
+      Only create a new dataset like `<poolname>/ROOT/plucky` with a clean root install.  This will utilize the existing `/boot/efi` ESP partition mount, as well as the existing `<poolname>/home/<username>` default user home dataset/directory and `<poolname>/home/root` main _root_ user dataset/directory.  The new dataset will be selectable via ZFSBootMenu
+
 - Run the `ZFS-root.sh` script - it will prompt for everything it needs.  You can create a `ZFS-root.conf` from the example `ZFS-root.conf.example` or specify another configfile with `-c <file>` to provide default values.
     ```
     cd ZFS-root
@@ -29,7 +32,7 @@ _Current issue: SecureBoot with locally-built kernel/initramfs for ZFSBootMenu i
 
 ## Parameters
 
-You can a couple of parameters on the command-line
+You can add a couple of parameters on the command-line
 
 - `-c <config file>`
 

@@ -40,7 +40,7 @@ POOLNAME="packerubuntu"
 # What version of Ubuntu to install
 # jammy, focal, bionic
 #
-SUITE="noble"
+SUITE="resolute"
 
 #
 # If multidisk, select main pool raid level

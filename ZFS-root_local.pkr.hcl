@@ -31,7 +31,7 @@ variable "output_prefix" {
 variable "ubuntu_version" {
   description = "Which version of Ubuntu to boot for the build"
   type = string
-  default = "24.04.2"
+  default = "26.04"
 }
 
 # Optional - will be auto-derived from ubuntu_version if not provided
@@ -100,6 +100,7 @@ locals {
   derived_version_name = (
     var.ubuntu_version_name != "" ? var.ubuntu_version_name :
     # Auto-derive based on version number
+    length(regexall("^26\\.04", var.ubuntu_version)) > 0 ? "resolute" :
     length(regexall("^25\\.10", var.ubuntu_version)) > 0 ? "questing" :
     length(regexall("^25\\.04", var.ubuntu_version)) > 0 ? "plucky" :
     length(regexall("^24\\.04", var.ubuntu_version)) > 0 ? "noble" :
@@ -232,7 +233,7 @@ source "qemu" "ubuntu" {
   # need to set a password so packer can ssh in to provision.
   # Could also curl ZFS-root.sh/.conf then run script right here
   boot_command = [
-    "<wait><enter><wait60>",
+    "<wait><enter><wait10><wait10><wait10><wait10><wait10><wait10>",
     "<leftCtrlOn>z<leftCtrlOff>",
     "<wait><enter><wait>",
     "ls -la /dev/vd* /dev/disk/by-id<enter><wait>",

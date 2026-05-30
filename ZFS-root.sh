@@ -656,9 +656,10 @@ query_suite() {
     # Suite to install - bionic focal jammy noble
     if [[ ! -v SUITE ]] ; then
         SUITE=$(whiptail --title "Select Ubuntu distribtion" --radiolist "Choose distro" 15 42 8 \
+            resolute "26.04 Resolute Raccoon" ON \
             questing "25.10 Questing Quokka" OFF \
             plucky "25.04 Plucky Puffin" OFF \
-            noble "24.04 Noble Numbat" ON \
+            noble "24.04 Noble Numbat" OFF \
             jammy "22.04 Jammy Jellyfish" OFF \
             focal "20.04 Focal Fossa" OFF \
             bionic "18.04 Bionic Beaver" OFF \
@@ -671,13 +672,23 @@ query_suite() {
     # TODO: Make use of SUITE_EXTRAS maybe
     #
     case ${SUITE} in
+        resolute)
+            SUITE_NUM="26.04"
+            SUITE_EXTRAS="netplan.io expect"
+            SUITE_BOOTSTRAP="wget,whois,rsync,gdisk,netplan.io,gpg-agent"
+            # Install HWE packages - set to blank or to "-hwe-26.04"
+            # Gets tacked on to various packages below
+            [ "${HWE}" = "y" ] && HWE="-hwe-${SUITE_NUM}" || HWE=
+            # Specific zpool features available in jammy
+            SUITE_ROOT_POOL="-O dnodesize=auto"
+            ;;
         questing)
             SUITE_NUM="25.10"
             SUITE_EXTRAS="netplan.io expect"
             SUITE_BOOTSTRAP="wget,whois,rsync,gdisk,netplan.io,gpg-agent"
-            # Install HWE packages - set to blank or to "-hwe-25.04"
+            # Install HWE packages - set to blank or to "-hwe-25.10"
             # Gets tacked on to various packages below
-            # TODO: No HWE packages for 25.04 yet - use this when/if available
+            # TODO: No HWE packages for 25.10 yet - use this when/if available
             # [ "${HWE}" = "y" ] && HWE="-hwe-${SUITE_NUM}" || HWE=
             HWE=
             # Specific zpool features available in jammy
@@ -743,12 +754,12 @@ query_suite() {
             # Specific zpool features available in bionic
             SUITE_ROOT_POOL="-O dnodesize=legacy"
             ;;
-        # Default to focal 24.04
+        # Default to resolute 26.04
         *)
-            SUITE_NUM="24.04"
+            SUITE_NUM="26.04"
             SUITE_EXTRAS="netplan.io expect"
             SUITE_BOOTSTRAP="wget,whois,rsync,gdisk,netplan.io"
-            # Install HWE packages - set to blank or to "-hwe-24.04"
+            # Install HWE packages - set to blank or to "-hwe-26.04"
             # Gets tacked on to various packages below
             [ "${HWE}" = "y" ] && HWE="-hwe-${SUITE_NUM}" || HWE=
             # Specific zpool features available in focal
@@ -775,7 +786,7 @@ query_secureboot() {
 
     # If UEFI SecureBoot should be enabled - NOTE: only available for noble/24.04
     if [[ ! -v SECUREBOOT ]] || [[ "$SECUREBOOT" != "n" ]]; then
-        if [[ -d /sys/firmware/efi ]] && [[ "${SUITE}" == "noble" ]] ; then
+        if [[ -d /sys/firmware/efi ]] && ( [[ "${SUITE}" == "noble" ]] || [[ "${SUITE}" == "resolute" ]] ) ; then
             # Create apt sources for sbctl
             curl -fsSL https://download.opensuse.org/repositories/home:jloeser:secureboot/xUbuntu_${SUITE_NUM}/Release.key | gpg --dearmor | sudo tee /usr/share/keyrings/secureboot.gpg > /dev/null
 
@@ -1673,6 +1684,11 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
 
     # efi-shell-x64 (shellx64.efi) only from noble/24.04 on
     case ${SUITE} in
+        resolute)
+            SUITE_NUM="26.04"
+            SUITE_BSDUTILS="bsdextrautils"
+            EFI_SHELL="efi-shell-x64"
+            ;;
         questing)
             SUITE_NUM="25.10"
             SUITE_BSDUTILS="bsdextrautils"
@@ -1697,8 +1713,9 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
             SUITE_BSDUTILS="bsdmainutils"
             ;;
         *)
-            SUITE_NUM="24.04"
-            SUITE_BSDUTILS="bsdmainutils"
+            SUITE_NUM="26.04"
+            SUITE_BSDUTILS="bsdextrautils"
+            EFI_SHELL="efi-shell-x64"
             ;;
     esac
 
@@ -2735,7 +2752,7 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
     # Local building requires golang asciidoc-base pkgconf pkgconf-bin libpcsclite-dev
     # To build locally need libpcsclite-dev libpcsclite1 golang-go sbsigntool
     if [[ ! -v SECUREBOOT ]] || [[ "$SECUREBOOT" != "n" ]]; then
-        if [[ -d /sys/firmware/efi ]] && [[ "${SUITE}" == "noble" ]] ; then
+        if [[ -d /sys/firmware/efi ]] && ( [[ "${SUITE}" == "noble" ]] || [[ "${SUITE}" == "resolute" ]] ) ; then
             # Create apt sources for sbctl
             curl -fsSL https://download.opensuse.org/repositories/home:jloeser:secureboot/xUbuntu_${SUITE_NUM}/Release.key | gpg --dearmor | sudo tee /usr/share/keyrings/secureboot.gpg > /dev/null
 
@@ -3204,7 +3221,7 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
     if [ "${GNOME}" = "y" ] ; then
         # NOTE: bionic has an xserver-xorg-hwe-<distro> package, focal and above do NOT
         case ${SUITE} in
-            focal | jammy | noble | plucky | questing)
+            focal | jammy | noble | plucky | questing | resolute)
                 # Don't install kdump-tools
                 cat > /tmp/kdump-selections <<- EOF
 					# Should kdump-tools be enabled by default?
@@ -3457,7 +3474,8 @@ fi
 # Query for install options
 query_install_options
 # zrepl has no release for 25.04/plucky or 25.10/questing yet
-[ "${SUITE}" == "plucky" ] || [ "${SUITE}" == "questing" ] && ZREPL=n
+# Looks like releases for all versions are there now ?
+# [ "${SUITE}" == "resolute" ] || [ "${SUITE}" == "plucky" ] || [ "${SUITE}" == "questing" ] && ZREPL=n
 
 query_nvidia
 query_google_auth

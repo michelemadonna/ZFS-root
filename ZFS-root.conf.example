@@ -40,7 +40,7 @@ POOLNAME="test"
 # What version of Ubuntu to install
 # noble, jammy, focal, bionic
 #
-SUITE="noble"
+SUITE="resolute"
 
 #
 # If multidisk, select main pool raid level
