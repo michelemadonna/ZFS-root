@@ -121,6 +121,7 @@ fi
 # validation and to provide better error messages at the script level
 if [[ -z "$NAME" && -n "$VER" ]]; then
     case "$VER" in
+        26.04* ) NAME="resolute" ;;
         25.10* ) NAME="questing" ;;
         25.04* ) NAME="plucky" ;;
         24.04* ) NAME="noble" ;;
