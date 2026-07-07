@@ -40,7 +40,7 @@ You can add a couple of parameters on the command-line
 
 - `-p`
 
-    Packer build mode.  Uses `ZFS-root.conf.packerci` unless overridden with `-c`.  See [README-PACKER.md](README-PACKER.md).
+    Packer build mode.  Uses `ZFS-root.conf.packerci` unless overridden with `-c`.  Config overrides can be passed via `--set KEY=VALUE` in `run-packer.sh`.  See [README-PACKER.md](README-PACKER.md).
 
 - `-d`
 
