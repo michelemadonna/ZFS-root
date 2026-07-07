@@ -151,6 +151,8 @@ For SecureBoot to be enabled and configured, the system must first be put into S
 
 A **systemd-path** config is put in place in `/etc/systemd/system/zfsbootmenu-update*` and `/etc/systemd/system/refind-update*` wihch can watch the **zfsbootmenu** and **rEFInd** files.  If they ever change (eg. upgraded) then a new efi bundle is created and signed.  This way you don't have to remember to re-create and sign when you upgrade
 
+Set **AUTOSIGN=n** in your config to disable this — useful for testing when you want to manage signing manually.
+
 ## Configuration
 
 The *ZFS-root.sh* script will prompt for all details it needs.  In addition, you can pre-seed those details via a *ZFS-root.conf* file, and an example is provided.  There are several extra config items that can only be set via a *ZFS-root.conf* file and not the menu questions.
@@ -190,6 +192,9 @@ There are a few parameters that are defaulted in the script, but can be overridd
 >   <dt>ZFSBOOTMENU_CMDLINE
 >   <dd>Extra options for the ZFSBootMenu boot command-line.  The default here disables the hook script that sometimes kills power to USB ports.  See the ZFS-root.conf.example file
 >   <dd>Default "zbm.skip_hooks=90-xhci-unbind.sh"
+>   <dt>AUTOSIGN
+>   <dd> Controls auto-signing of rEFInd and ZFSBootMenu EFI bundles when boot files change.  Requires SecureBoot.
+>   <dd> Default "y" in ZFS-root.conf.example, "n" in ZFS-root.conf.packerci
 >   <dt>SOF_VERSION
 >   <dd> Sound Open Firmware binaries (for laptops)
 >   <dd> Default "2025.05.1"
