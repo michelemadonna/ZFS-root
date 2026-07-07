@@ -63,7 +63,7 @@ variable "ubuntu_live_iso_src" {
 
 variable "disk_size" {
   type    = string
-  default = "5G"
+  default = "8G"
 }
 
 variable "additional_disks" {
@@ -197,7 +197,7 @@ source "qemu" "ubuntu" {
   # iso_checksum      = "10f19c5b2b8d6db711582e0e27f5116296c34fe4b313ba45f9b201a5007056cb" # 22.04.1
 
   cpus              = 2
-  memory            = 2048
+  memory            = 4096
   accelerator       = "kvm"
   # Machine type: q35 required for SecureBoot, pc for standard boot
   # See machine_type in https://developer.hashicorp.com/packer/integrations/hashicorp/qemu/latest/components/builder/qemu
