@@ -83,6 +83,12 @@ variable "secureboot" {
   description = "Enable SecureBoot (requires SecureBoot-enabled OVMF firmware)"
 }
 
+variable "sshpubkey" {
+  type    = string
+  default = ""
+  description = "Any additional ssh pubkey to add - used for CI/CD for packer"
+}
+
 variable "config_file" {
   description = "Config preseed file for ZFS-root.sh - defaults to ZFS-root.conf.packerci"
   type    = string
@@ -159,6 +165,7 @@ locals {
     POOLNAME     = local.derived_version_name
     SUITE        = local.derived_version_name
     RAIDLEVEL    = local.actual_raidlevel
+    SSHPUBKEY    = var.sshpubkey
   }
 
   # Merge defaults with user overrides (user overrides win)

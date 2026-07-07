@@ -75,6 +75,16 @@ jobs:
             echo "Found $(wc -l < unvalidated.txt) build(s) to validate"
           fi
 
+      - name: Add CI packer ssh key
+        if: steps.find.outputs.all_validated != 'true'
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "Copying ssh key to /root/.ssh"
+          mkdir -p /root/.ssh
+          chmod 700 /root/.ssh
+          cp ./packer-validation/CICD_ed25519 /root/.ssh/id_ed25519
+
       - name: Validate each build
         if: steps.find.outputs.all_validated != 'true'
         run: |
