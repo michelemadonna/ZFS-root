@@ -162,38 +162,32 @@ add_var "config_file"         "$CONFIG_FILE"
 
 # Build config_overrides map from --set parameters
 if [[ ${#CONFIG_OVERRIDES[@]} -gt 0 ]]; then
-    # Build HCL map syntax: {"KEY1":"VALUE1","KEY2":"VALUE2"} (JSON-style for CLI compatibility)
-    # Note: Escaping differs for docker (sh -c) vs direct packer execution
+    # Build JSON-style map for PKR_VAR_config_overrides env var
     overrides_map="{"
     for i in "${!CONFIG_OVERRIDES[@]}"; do
         # Split KEY=VALUE
         key="${CONFIG_OVERRIDES[$i]%%=*}"
         value="${CONFIG_OVERRIDES[$i]#*=}"
 
-        # Escape quotes in value
-        if [[ -n "${DOCKER_RUN}" ]]; then
-            # Docker needs extra escaping for sh -c processing
-            escaped_value="${value//\"/\\\\\\\"}"
-            quote="\\\""
-        else
-            # Direct execution needs normal escaping
-            escaped_value="${value//\"/\\\"}"
-            quote="\""
-        fi
+        # Escape any double quotes in the value
+        escaped_value="${value//\"/\\\"}"
 
         # Add to map with quoted keys and values (using colon for JSON-style syntax)
         if [[ $i -eq 0 ]]; then
-            overrides_map+="${quote}${key}${quote}:${quote}${escaped_value}${quote}"
+            overrides_map+="\"${key}\":\"${escaped_value}\""
         else
-            overrides_map+=",${quote}${key}${quote}:${quote}${escaped_value}${quote}"
+            overrides_map+=",\"${key}\":\"${escaped_value}\""
         fi
     done
     overrides_map+="}"
 
-    packer_args+=( -var "config_overrides=${overrides_map}" )
+    # Export as env var instead of -var to avoid shell argument splitting
+    # on values containing spaces (e.g. SSH public keys)
+    export PKR_VAR_config_overrides="${overrides_map}"
 
     echo "Config overrides: ${CONFIG_OVERRIDES[*]}"
 fi
+
 
 # Running in docker requires headless, but running direct/local we can
 # view the install directly
@@ -283,6 +277,7 @@ packer_docker() {
       -v ${QEMU_ROOT}/builds:/qemu/builds \
       -e PACKER_PLUGIN_PATH="/root/.cache/packer.d/plugins" \
       -e PACKER_LOG=1 \
+      -e PKR_VAR_config_overrides \
       --entrypoint /bin/sh \
       hashicorp/packer:light -c " \
         apk add --no-cache qemu-system-x86_64 qemu-img >/dev/null 2>&1 && \
