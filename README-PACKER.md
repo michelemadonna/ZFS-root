@@ -30,7 +30,7 @@ The default credentials for packer-built images are `packer/packer`.
 | Option | Description |
 |--------|-------------|
 | `--docker` | Run packer in a Docker container |
-| `--ubuntu-version` | Ubuntu version (e.g. 24.04.2, 25.04) |
+| `--ubuntu-version` | Ubuntu version (e.g. 24.04.2, 26.04) |
 | `--discenc` | Encryption: NOENC, ZFSENC, or LUKS |
 | `--disk-size` | Disk size (e.g. 5G, 10G) |
 | `--disks N` | Total number of disks |
@@ -39,6 +39,9 @@ The default credentials for packer-built images are `packer/packer`.
 | `--iso-src` | ISO location (e.g. file:///qemu/ISOs) |
 | `--config` | Config file (default: ZFS-root.conf.packerci) |
 | `--set KEY=VALUE` | Override config variables |
+
+The `--set SSHPUBKEY=...` option injects an SSH public key into the build for
+CI/CD access. A dedicated CI key pair is available at `packer-validation/CICD_ed25519{,.pub}`.
 
 ## Config Overrides
 
@@ -50,6 +53,8 @@ The `--set` option lets you override any `ZFS-root.conf` variable:
 ```
 
 Multiple `--set` options can be combined.  These override values from both the base config file and packer's automatic defaults.
+
+The `--set SSHPUBKEY=...` option is commonly used for CI/CD — an example CI key pair lives at `packer-validation/CICD_ed25519{,.pub}`.  This injects the pubkey into the build's `~/.ssh/authorized_keys` and into Dropbear's ACL for remote unlocking.
 
 ## ISO Location
 
