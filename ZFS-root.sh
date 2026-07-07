@@ -2668,16 +2668,6 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
         echo " Installing dropbear for remote unlocking"
         echo "---------------------------------------------------"
 
-        apt-get -qq --yes install dracut-network dropbear-bin
-        rm -rf /tmp/dracut-crypt-ssh && mkdir -p /tmp/dracut-crypt-ssh
-        download_with_retry "https://github.com/dracut-crypt-ssh/dracut-crypt-ssh/tarball/master" "/tmp/dracut-crypt-ssh.tar.gz"
-        tar xzf /tmp/dracut-crypt-ssh.tar.gz --no-same-owner --strip-components=1 --directory /tmp/dracut-crypt-ssh
-        rm -f /tmp/dracut-crypt-ssh.tar.gz
-
-        ##comment out references to /helper/ folder from module-setup.sh
-        sed -i '/inst \"\$moddir/s/^\(.*\)$/#&/' /tmp/dracut-crypt-ssh/modules/60crypt-ssh/module-setup.sh
-        cp -r /tmp/dracut-crypt-ssh/modules/60crypt-ssh /usr/lib/dracut/modules.d
-
         echo 'install_items+=" /etc/cmdline.d/dracut-network.conf "' >  /etc/zfsbootmenu/dracut.conf.d/dropbear.conf
         echo 'add_dracutmodules+=" crypt-ssh "'                      >> /etc/zfsbootmenu/dracut.conf.d/dropbear.conf
         # Have dracut use main user authorized_keys for access
@@ -2733,10 +2723,108 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
     # Generate an initramfs
     dracut -v -f --regenerate-all
 
+    # Generate a LOCAL zfsbootmenu kernel/initramfs pair
+    # NOTE: resolute/26.04 dracut now uses systemd more deeply, and crypt-ssh depends
+    #       on systemd-networkd which depends on the systemd dracut module. That module
+    #       fails to install, causing the whole build to fail.
+    #       Solution is to use the zfsbootmenu container build system, using podman
     if [ "${WIPE_FRESH}" == "y" ] ; then     # <<<<<------------------------------------------------ WIPE_FRESH ------ VVVVV
         if [ "${ZFSBOOTMENU_BINARY_TYPE}" = "LOCAL" ] ; then
-            # generate-zbm only there if we built from scratch, not using downloaded image
-            [ -e /usr/bin/generate-zbm ] && generate-zbm --debug
+            #-# RESOLUTE: generate-zbm replaced by zbm-builder podman container
+            #-# [ -e /usr/bin/generate-zbm ] && generate-zbm --debug
+
+            echo "--------------------------------------------------------------------------------"
+            echo "Building ZFSBootMenu image via zbm-builder container (inside chroot)"
+            if ! command -v podman &>/dev/null ; then
+                apt-get -qq --yes install podman
+            fi
+
+            ZBM_BUILDER_SH=/tmp/zbm-builder.sh
+            if [ ! -e ${ZBM_BUILDER_SH} ] ; then
+                wget --quiet -O ${ZBM_BUILDER_SH} \
+                    https://raw.githubusercontent.com/zbm-dev/zfsbootmenu/master/zbm-builder.sh
+                chmod +x ${ZBM_BUILDER_SH}
+            fi
+
+            # Redirect podman storage to a tmpfs - keeps image layers off the VM disk.
+            # Layers + xbps updates unpack to ~1.2GB; 2500m is safe with 4096MB RAM.
+            PODMAN_TMPFS=/tmp/podman-store
+            mkdir -p ${PODMAN_TMPFS}
+            mount -t tmpfs -o size=2500m tmpfs ${PODMAN_TMPFS}
+            mkdir -p ${PODMAN_TMPFS}/{storage,run}
+
+            PODMAN_STORAGE_CONF=${PODMAN_TMPFS}/storage.conf
+            # NOTE: be sure to use real TABS for this heredoc
+            cat > ${PODMAN_STORAGE_CONF} <<- STEOF
+				[storage]
+				driver = "overlay"
+				graphRoot = "${PODMAN_TMPFS}/storage"
+				runRoot = "${PODMAN_TMPFS}/run"
+			STEOF
+
+            # Ensure podman uses cgroupfs rather than systemd (d-bus)
+            # NOTE: be sure to use real TABS for this heredoc
+            mkdir -p /etc/containers
+            cat > /etc/containers/containers.conf <<- CEOF
+				[engine]
+				cgroup_manager = "cgroupfs"
+				events_logger = "file"
+			CEOF
+
+            # Pre-stage the target hostid so zbm-builder uses it instead of
+            # copying from /etc/hostid (which is the live-CD's hostid).
+            cp /etc/hostid /etc/zfsbootmenu/hostid
+
+            # rc.d and zbm-builder.conf are built conditionally on DROPBEAR
+            # NOTE: be sure to use real TABS for this heredoc
+            if [ "${DROPBEAR}" = "y" ] ; then
+                mkdir -p /etc/zfsbootmenu/rc.d
+                cat > /etc/zfsbootmenu/rc.d/10-install-crypt-ssh <<- 'RCEOF'
+					#!/bin/sh
+					set -e
+					echo "--- Updating xbps and installing dropbear and dracut-crypt-ssh ---"
+					xbps-install -Suy xbps
+					xbps-install -Suy dropbear dracut-crypt-ssh
+					echo "--- Cleaning xbps cache to free space ---"
+					xbps-remove -Oo
+				RCEOF
+                chmod 755 /etc/zfsbootmenu/rc.d/10-install-crypt-ssh
+            fi
+
+            # zbm-builder.conf:
+            # - net=host for podman networking
+            # - RUNTIME_ARGS mounts the EFI output dir directly to /output inside container
+            # - BUILD_ARGS tells generate-zbm to write images to /output
+            # NOTE: be sure to use real TABS for this heredoc
+            cat > /etc/zfsbootmenu/zbm-builder.conf <<- ZBMEOF
+				RUNTIME_ARGS+=( --net=host )
+				RUNTIME_ARGS+=( -v /boot/efi/EFI/zfsbootmenu:/output )
+				BUILD_ARGS+=( -o /output )
+			ZBMEOF
+
+            # Build the zbm-builder.sh command - only add authorized_keys volume if DROPBEAR
+            ZBM_EXTRA_ARGS=()
+            if [ "${DROPBEAR}" = "y" ] ; then
+                ZBM_EXTRA_ARGS+=( -O --volume -O "/home/${USERNAME}/.ssh/authorized_keys:/home/${USERNAME}/.ssh/authorized_keys:ro" )
+            fi
+
+            CONTAINERS_STORAGE_CONF=${PODMAN_STORAGE_CONF} \
+            XDG_RUNTIME_DIR=${PODMAN_TMPFS}/run \
+            ${ZBM_BUILDER_SH} \
+                -b /etc/zfsbootmenu \
+                "${ZBM_EXTRA_ARGS[@]}"
+
+            ZBM_RC=${?}
+
+            umount -f ${PODMAN_TMPFS} && rm -rf ${PODMAN_TMPFS}
+
+            if [ ${ZBM_RC} -ne 0 ] ; then
+                echo "ERROR: zbm-builder container failed with exit code ${ZBM_RC}"
+                echo "       ZFSBootMenu image was NOT created. Check output above."
+            else
+                echo "ZFSBootMenu image built successfully via container."
+            fi
+
         else
             # Otherwise use syslinux-update.sh to create/update the syslinux.cfg
             [ -e /boot/efi/syslinux-update.sh ] && /boot/efi/syslinux-update.sh
@@ -3573,6 +3661,11 @@ mount -t proc /proc ${ZFSBUILD}/proc
 mount -t sysfs sys  ${ZFSBUILD}/sys
 mount -B /dev  ${ZFSBUILD}/dev
 mount -t devpts pts ${ZFSBUILD}/dev/pts
+# /dev/fuse is needed by podman's fuse-overlayfs storage driver inside the chroot
+# Used to create the zfsbootmenu kernel/initramfs set
+mount -B /dev/fuse ${ZFSBUILD}/dev/fuse
+# cgroup2 and systemd socket needed by podman's OCI runtime (crun) inside chroot
+mount -t cgroup2 none ${ZFSBUILD}/sys/fs/cgroup
 
 # chroot and set up system
 # chroot ${ZFSBUILD} /bin/bash --login -c /root/Setup.sh
@@ -3581,7 +3674,7 @@ unshare --mount --fork chroot ${ZFSBUILD} /bin/bash --login -c /root/Setup.sh $1
 # Remove any lingering crash reports
 rm -f ${ZFSBUILD}/var/crash/*
 
-umount -n ${ZFSBUILD}/{dev/pts,dev,sys,proc}
+umount -n ${ZFSBUILD}/{dev/pts,dev/fuse,dev,sys/fs/cgroup,sys,proc}
 
 # Copy setup log and chroot Setup.sh to originating system (livecd or local /root dir)
 DATETIME=$(date +%F-%H-%M-%S)
