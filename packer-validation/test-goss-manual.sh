@@ -12,6 +12,10 @@
 #   --dropbear-port PORT      SSH port for Dropbear unlock (default: 1222)
 #   --save-results true|false Save goss output to build dir (default: true)
 #   --help, -h                Show this help
+#
+# Local testing in container (from ZFS-root repo root)
+# docker run --rm -it -v "$(pwd)":"${PWD}" -w "${PWD}" -v /qemu/builds:/qemu/builds -v /usr/share/OVMF:/usr/share/OVMF:ro --device /dev/kvm --name hashi --entrypoint=/bin/sh hashicorp/packer:light
+# Then run steps from .gitea/workflows/packer-validate.yml or packer-build.yml
 
 set -e
 
@@ -239,7 +243,10 @@ else
     # The \$( before select_kernel is intentional: prevents local expansion,
     # so the remote shell performs the subshell substitution.
     DATASET="${POOL_NAME}/ROOT/${SUITE_NAME}"
-    (ssh $DROPBEAR_OPTS -p $DROPBEAR_PORT root@localhost 'bash -l -c "sleep 5 ; echo '"'password'"' | load_key '"$DATASET"' ; sleep 2 ; find_be_kernels '"$DATASET"' ; sleep 2 ; kexec_kernel \"\$(select_kernel '"$DATASET"')\"" ') &
+
+    # ssh -n keeps this backgrounded connection from ever touching the caller's
+    # stdin (matters when this script is called from a `while read < file` loop).
+    (ssh -n $DROPBEAR_OPTS -p $DROPBEAR_PORT root@localhost 'bash -l -c "sleep 5 ; echo '"'password'"' | load_key '"$DATASET"' ; sleep 2 ; find_be_kernels '"$DATASET"' ; sleep 2 ; kexec_kernel \"\$(select_kernel '"$DATASET"')\"" ') &
     UNLOCK_PID=$!
     echo "Unlock ssh is pid $UNLOCK_PID"
 
@@ -254,11 +261,13 @@ fi
 
 # Step 4: Install goss on VM
 echo "[4/6] Installing goss on VM..."
-sshpass -p 'packer' ssh $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost "mkdir -p /home/${MAIN_USER}/.local/bin && if [ ! -e /home/${MAIN_USER}/.local/bin/goss ] ; then curl -fsSL https://goss.rocks/install | GOSS_DST=/home/${MAIN_USER}/.local/bin sh ; fi"
+# All ssh/scp calls below use -n / </dev/null so this script is safe to invoke
+# from inside a `while read <file; do ...; done` loop without draining stdin.
+sshpass -p 'packer' ssh -n $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost "mkdir -p /home/${MAIN_USER}/.local/bin && if [ ! -e /home/${MAIN_USER}/.local/bin/goss ] ; then curl -fsSL https://goss.rocks/install | GOSS_DST=/home/${MAIN_USER}/.local/bin sh ; fi"
 
 # Step 5: Copy test files to VM
 echo "[5/6] Copying test files..."
-sshpass -p 'packer' scp $SSH_OPTS -P $SSH_PORT -r "${SCRIPT_DIR}/packer-validation" $MAIN_USER@localhost:
+sshpass -p 'packer' scp $SSH_OPTS -P $SSH_PORT -r "${SCRIPT_DIR}/packer-validation" $MAIN_USER@localhost: </dev/null
 
 # Step 6: Run goss validation
 echo "[6/6] Running goss validation..."
@@ -269,7 +278,7 @@ echo "=========================================="
 
 # Run goss, capturing output to a temp file while also streaming to stdout
 GOSS_TMPFILE=$(mktemp /tmp/goss-output-XXXXXX)
-sshpass -p 'packer' ssh $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost \
+sshpass -p 'packer' ssh -n $SSH_OPTS -p $SSH_PORT $MAIN_USER@localhost \
     "echo packer | sudo -S VALIDATION_DIR=/home/${MAIN_USER}/packer-validation /home/${MAIN_USER}/packer-validation/run-validation.sh" \
     | tee "$GOSS_TMPFILE" || true
 GOSS_EXIT=${PIPESTATUS[0]}

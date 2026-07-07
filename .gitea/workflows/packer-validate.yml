@@ -89,18 +89,29 @@ jobs:
         if: steps.find.outputs.all_validated != 'true'
         run: |
           FAILED=0
-          while IFS= read -r build_dir; do
+          # Read the list from FD 3 (not stdin) so ssh/scp inside the loop can't
+          # drain unvalidated.txt and truncate the iteration. Also feed the
+          # script /dev/null on stdin as belt-and-braces.
+          while IFS= read -r build_dir <&3; do
             echo ""
             echo "=========================================="
             echo "Validating: $build_dir"
             echo "=========================================="
-            if ./packer-validation/test-goss-manual.sh "$build_dir"; then
+            if ./packer-validation/test-goss-manual.sh "$build_dir" </dev/null; then
               echo "✅ Passed: $build_dir"
             else
               echo "❌ Failed: $build_dir"
               FAILED=$((FAILED + 1))
             fi
-          done < unvalidated.txt
+            # test-goss-manual.sh deliberately leaves the VM running for
+            # interactive use. In CI we need the ports (2222/1222) free for
+            # the next iteration, so kill it here.
+            if [ -f /tmp/qemu-vm.pid ]; then
+              kill "$(cat /tmp/qemu-vm.pid)" 2>/dev/null || true
+              rm -f /tmp/qemu-vm.pid
+              sleep 2
+            fi
+          done 3< unvalidated.txt
 
           if [ "$FAILED" -gt 0 ]; then
             echo ""
