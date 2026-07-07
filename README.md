@@ -4,7 +4,7 @@ This script is meant to be run from an Ubuntu Live CD.  It will build an Ubuntu 
 
 It can also be used to create a new `<poolname>/ROOT/<distro>` dataset for testing other Ubuntu distros on an existing system.  See **WIPE_FRESH** below.
 
-_Current issue: SecureBoot with locally-built kernel/initramfs for ZFSBootMenu is not working yet._
+_Current issue: SecureBoot with locally-built kernel/initramfs for ZFSBootMenu was unstable on 26.04+ due to dracut/systemd changes. LOCAL builds now use the zbm-builder podman container, which resolves this. See note below._
 
 ## tl;dr
 
@@ -228,7 +228,7 @@ Host unlock-foobox
 
 This will run the `zfsbootmenu` command upon login automagically.  NOTE: one problem is that the ssh session might remain after unlocking - need a clean way to ensure it exits after the unlock is finished
 
-NOTE: Enabling encryption and Dropbear will _force_ the **ZFSBOOTMENU_BINARY_TYPE** in the config file to be **LOCAL**.  This will build _zfsbootmenu_ locally from scratch, including Dropbear into the _zfsbootmenu_ initramfs.
+NOTE: Enabling encryption and Dropbear will _force_ the **ZFSBOOTMENU_BINARY_TYPE** in the config file to be **LOCAL**.  This will build _zfsbootmenu_ locally from scratch, including Dropbear into the _zfsbootmenu_ initramfs.  LOCAL builds now use the zbm-builder **podman** container to generate the kernel/initramfs pair, required on 26.04+ and recommended for consistency across releases.
 
 ## Booting details
 
