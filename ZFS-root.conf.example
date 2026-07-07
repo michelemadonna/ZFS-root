@@ -38,7 +38,7 @@ POOLNAME="test"
 
 #
 # What version of Ubuntu to install
-# noble, jammy, focal, bionic
+# resolute, questing, plucky, noble, jammy, focal, bionic
 #
 SUITE="resolute"
 

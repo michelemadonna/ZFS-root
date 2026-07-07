@@ -38,7 +38,7 @@ POOLNAME="packerubuntu"
 
 #
 # What version of Ubuntu to install
-# jammy, focal, bionic
+# resolute, questing, plucky, noble, jammy, focal, bionic
 #
 SUITE="resolute"
 

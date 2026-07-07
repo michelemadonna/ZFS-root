@@ -56,8 +56,10 @@ Multiple `--set` options can be combined.  These override values from both the b
 ISOs are downloaded automatically from releases.ubuntu.com, or you can point to a local cache.  For local ISOs, place them in release-named subdirectories:
 
 ```
-/qemu/ISOs/noble/ubuntu-24.04.2-live-server-amd64.iso
+/qemu/ISOs/resolute/ubuntu-26.04-live-server-amd64.iso
+/qemu/ISOs/questing/ubuntu-25.10-live-server-amd64.iso
 /qemu/ISOs/plucky/ubuntu-25.04-live-server-amd64.iso
+/qemu/ISOs/noble/ubuntu-24.04.2-live-server-amd64.iso
 ```
 
 Then use `--iso-src file:///qemu/ISOs`.

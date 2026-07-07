@@ -22,8 +22,12 @@ output_prefix         = "/qemu/builds/"
 
 # Where to find ISOs - this can be local with "file:///some/dir"
 # For local ISOs, each ISO should be in the appropriate release-named dir
-#   /qemu/ISOs/focal/ubuntu-20.04.5-live-server-amd64.iso
+#   /qemu/ISOs/resolute/ubuntu-26.04-live-server-amd64.iso
+#   /qemu/ISOs/questing/ubuntu-25.10-live-server-amd64.iso
+#   /qemu/ISOs/plucky/ubuntu-25.04-live-server-amd64.iso
+#   /qemu/ISOs/noble/ubuntu-24.04.2-live-server-amd64.iso
 #   /qemu/ISOs/jammy/ubuntu-22.04.5-live-server-amd64.iso
+#   /qemu/ISOs/focal/ubuntu-20.04.5-live-server-amd64.iso
 # ubuntu_live_iso_src   = "https://releases.ubuntu.com"
 ubuntu_live_iso_src   = "file:///qemu/ISOs"
 
