@@ -805,7 +805,7 @@ query_secureboot() {
             apt-get -qq --yes --no-install-recommends install systemd-boot-efi
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
-            mv $HOME/go/bin/sbctl /usr/local/bin
+            mv $HOME/go/bin/sbctl /usr/sbin/
             
             # Are we in setup mode for SecureBoot ?
             SETUPMODE=$(sbctl status --json | jq '.setup_mode')
@@ -2912,7 +2912,7 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
             apt-get -qq --yes --no-install-recommends install systemd-ukify
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
-            mv $HOME/go/bin/sbctl /usr/local/bin
+            mv $HOME/go/bin/sbctl /usr/sbin/
 
             if [ "${WIPE_FRESH}" == "y" ] ; then     # <<<<<------------------------------------------------ WIPE_FRESH ------ VVVVV
                 # Only need to create the efi image if we installed zfsbootmenu as the
