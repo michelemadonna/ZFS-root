@@ -11,7 +11,7 @@
 #   n - Only creates a new dataset under <pool>/ROOT/<suite>
 #       This is then selectable under zfsbootmenu
 #
-# WIPE_FRESH=y
+WIPE_FRESH=y
 
 # Proxy config - apt-cacher-ng
 #
