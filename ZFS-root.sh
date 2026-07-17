@@ -805,7 +805,7 @@ query_secureboot() {
             apt-get -qq --yes --no-install-recommends install systemd-boot-efi
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
-            mv $HOME/go/bin/sbctl /usr/sbin/
+            mv -f $HOME/go/bin/sbctl /usr/sbin/
             
             # Are we in setup mode for SecureBoot ?
             SETUPMODE=$(sbctl status --json | jq '.setup_mode')
@@ -1108,18 +1108,18 @@ partition_disks() {
             # LUKS Encrypted - should be partition type 8309 (Linux LUKS)
             # wipefs --all --force /dev/disk/by-id/${zfsdisks[${disk}]}-part${PARTITION_DATA}
             # zpool labelclear -f /dev/disk/by-id/${zfsdisks[${disk}]}-part${PARTITION_DATA}
-            sgdisk -n ${PARTITION_DATA}:0:0 -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:8300 /dev/disk/by-id/${zfsdisks[${disk}]}
+            sgdisk -n ${PARTITION_DATA}:0:50G -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:8300 /dev/disk/by-id/${zfsdisks[${disk}]}
             apt-get -qq --no-install-recommends --yes install cryptsetup
         else
         # Unencrypted or ZFS encrypted
-            sgdisk -n ${PARTITION_DATA}:0:0 -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:BF00 /dev/disk/by-id/${zfsdisks[${disk}]}
+            sgdisk -n ${PARTITION_DATA}:0:50G -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:BF00 /dev/disk/by-id/${zfsdisks[${disk}]}
         fi # DISCENC for LUKS
 
         #
         # Example partition creation for Windows - be sure to change :0:0 above to :0:+<some size> and +500G here to appropriate
         #
-        # sgdisk -n ${PARTITION_WIND}:0:+500G -c ${PARTITION_WIND}:"WIN11_${disk}" -t ${PARTITION_WIND}:C12A /dev/disk/by-id/${zfsdisks[${disk}]}
-        # sgdisk -n ${PARTITION_RCVR}:0:0     -c ${PARTITION_RCVR}:"RCVR_${disk}"  -t ${PARTITION_RCVR}:2700 /dev/disk/by-id/${zfsdisks[${disk}]}
+        sgdisk -n ${PARTITION_WIND}:0:+50G -c ${PARTITION_WIND}:"WIN11_${disk}" -t ${PARTITION_WIND}:C12A /dev/disk/by-id/${zfsdisks[${disk}]}
+        sgdisk -n ${PARTITION_RCVR}:0:0     -c ${PARTITION_RCVR}:"RCVR_${disk}"  -t ${PARTITION_RCVR}:2700 /dev/disk/by-id/${zfsdisks[${disk}]}
     done
 
     # Refresh partition information
@@ -1736,9 +1736,8 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
 		# zfs-dkms license notification
 		zfs-dkms        zfs-dkms/note-incompatible-licenses  note
 		# tzdata
-		tzdata  tzdata/Zones/US                         select Eastern
-		tzdata  tzdata/Zones/America                    select Denver
-		tzdata  tzdata/Areas                            select America
+		tzdata  tzdata/Zones/Europe                     select Rome
+		tzdata  tzdata/Areas                            select Europe
 		console-setup   console-setup/codeset47         select  # Latin1 and Latin5 - western Europe and Turkic languages
 	EOFPRE
     cat /tmp/selections | debconf-set-selections
@@ -1749,16 +1748,22 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
 	 	# LC_ALL=en_US.UTF-8
 	 	LANG=en_US.UTF-8
 	 	LANGUAGE=en_US:en
+	 	LANG=LC_TIME=it_IT.UTF-8
+	 	LANG=LC_MONETARY=it_IT.UTF-8
+	 	LANG=LC_NUMERIC=it_IT.UTF-8
+	 	LANG=LC_MEASUREMENT=it_IT.UTF-8
 	EOFLOCALE
     cat > /etc/locale.gen <<- EOFLOCALEGEN
 		en_US.UTF-8 UTF-8
+		it_IT.UTF-8 UTF-8
 	EOFLOCALEGEN
     cat /etc/default/locale >> /etc/environment
-    locale-gen --purge "en_US.UTF-8"
+    locale-gen --purge "en_US.UTF-8" 
+	locale-gen --purge "it_IT.UTF-8"
     dpkg-reconfigure -f noninteractive locales
 
-    echo "America/Boise" > /etc/timezone
-    ln -fs /usr/share/zoneinfo/US/Mountain /etc/localtime
+    echo "Europe/Rome" > /etc/timezone
+    sudo ln -sf /usr/share/zoneinfo/Europe/Rome /etc/localtime
     dpkg-reconfigure -f noninteractive tzdata
 
     # NOTE: Very important
@@ -2912,7 +2917,7 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
             apt-get -qq --yes --no-install-recommends install systemd-ukify
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
-            mv $HOME/go/bin/sbctl /usr/sbin/
+            mv -f $HOME/go/bin/sbctl /usr/sbin/
 
             if [ "${WIPE_FRESH}" == "y" ] ; then     # <<<<<------------------------------------------------ WIPE_FRESH ------ VVVVV
                 # Only need to create the efi image if we installed zfsbootmenu as the
