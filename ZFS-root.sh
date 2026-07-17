@@ -789,7 +789,7 @@ query_secureboot() {
         if [[ -d /sys/firmware/efi ]] && ( [[ "${SUITE}" == "noble" ]] || [[ "${SUITE}" == "resolute" ]] ) ; then
             
 			apt-get -qq update
-            apt-get -qq --yes --no-install-recommends install systemd-boot-efi
+            apt-get -qq --yes --no-install-recommends install systemd-boot-efi asciidoc-base pkgconf pkgconf-bin build-essential curl micro
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
             mv -f $HOME/go/bin/sbctl /usr/sbin/
@@ -2888,7 +2888,7 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
             fi
 
             apt-get -qq update
-            apt-get -qq --yes --no-install-recommends install systemd-boot-efi
+            apt-get -qq --yes --no-install-recommends install systemd-boot-efi apt-get -qq --yes --no-install-recommends install systemd-boot-efi asciidoc-base pkgconf pkgconf-bin build-essential curl micro
             apt-get -qq --yes --no-install-recommends install systemd-ukify
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
