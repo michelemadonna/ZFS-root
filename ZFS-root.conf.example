@@ -148,7 +148,7 @@ SOF=n
 GNOME=n
 KDE=n
 NEON=n
-XFCE=Y
+XFCE=y
 
 # If you have Nvidia video HW and you *know* which version of driver you want
 # it can be preset here. Leaving undefined will cause the script to prompt.
