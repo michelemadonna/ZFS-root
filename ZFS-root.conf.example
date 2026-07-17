@@ -21,8 +21,8 @@ PROXY=
 #
 # Main username and comment
 #
-USERNAME="george"
-UCOMMENT="George of the Jungle"
+USERNAME="michele"
+UCOMMENT="Michele"
 UPASSWORD="password"
 
 #
@@ -33,8 +33,8 @@ AUTHKEYS=
 #
 # System name, main zfs pool name, boot pool name
 #
-MYHOSTNAME="test"
-POOLNAME="test"
+MYHOSTNAME="Ubuntu"
+POOLNAME="ubuntu"
 
 #
 # What version of Ubuntu to install
@@ -54,7 +54,7 @@ RAIDLEVEL="mirror"
 #       For VirtualBox delete the VM .nvram file
 #       For other systems see the UEFI SecureBoot config section in the bios
 #
-SECUREBOOT=n
+SECUREBOOT=y
 
 #
 # Enable auto-signing of rEFInd and ZFSBootMenu .efi bundles when changes are made
@@ -94,7 +94,7 @@ SIZE_SWAP=300
 #       be forced to LOCAL so the zfsbootmenu initramfs can be rebuilt to include
 #       Dropbear
 #
-DISCENC="NOENC"
+DISCENC="ZFSENC"
 PASSPHRASE="password"
 DROPBEAR=n
 
@@ -115,7 +115,7 @@ DROPBEAR=n
 #       in the initramfs for zfsbootmenu.  If DROPBEAR above is set to y, then
 #       any value here will be overridden to LOCAL
 #
-ZFSBOOTMENU_BINARY_TYPE=KERNEL
+ZFSBOOTMENU_BINARY_TYPE=EFI
 
 #
 # For the zfsbootmenu repo type you can choose
@@ -148,7 +148,7 @@ SOF=n
 GNOME=n
 KDE=n
 NEON=n
-XFCE=n
+XFCE=Y
 
 # If you have Nvidia video HW and you *know* which version of driver you want
 # it can be preset here. Leaving undefined will cause the script to prompt.
