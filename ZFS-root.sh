@@ -1735,18 +1735,12 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
 	 	# LC_ALL=en_US.UTF-8
 	 	LANG=en_US.UTF-8
 	 	LANGUAGE=en_US:en
-	 	LANG=LC_TIME=it_IT.UTF-8
-	 	LANG=LC_MONETARY=it_IT.UTF-8
-	 	LANG=LC_NUMERIC=it_IT.UTF-8
-	 	LANG=LC_MEASUREMENT=it_IT.UTF-8
 	EOFLOCALE
     cat > /etc/locale.gen <<- EOFLOCALEGEN
 		en_US.UTF-8 UTF-8
-		it_IT.UTF-8 UTF-8
 	EOFLOCALEGEN
     cat /etc/default/locale >> /etc/environment
-    locale-gen --purge "en_US.UTF-8" 
-	locale-gen --purge "it_IT.UTF-8"
+    locale-gen --purge "en_US.UTF-8"
     dpkg-reconfigure -f noninteractive locales
 
     echo "Europe/Rome" > /etc/timezone
