@@ -787,21 +787,8 @@ query_secureboot() {
     # If UEFI SecureBoot should be enabled - NOTE: only available for noble/24.04
     if [[ ! -v SECUREBOOT ]] || [[ "$SECUREBOOT" != "n" ]]; then
         if [[ -d /sys/firmware/efi ]] && ( [[ "${SUITE}" == "noble" ]] || [[ "${SUITE}" == "resolute" ]] ) ; then
-            # Create apt sources for sbctl
-            curl -fsSL https://download.opensuse.org/repositories/home:jloeser:secureboot/xUbuntu_${SUITE_NUM}/Release.key | gpg --dearmor | sudo tee /usr/share/keyrings/secureboot.gpg > /dev/null
-
-            # NOTE: heredoc using TABS - be sure to use TABS if you make any changes
-            #cat > /etc/apt/sources.list.d/secureboot.sources <<- EOF
-			#X-Repolib-Name: SecureBoot
-			#Types: deb
-			#URIs: http://download.opensuse.org/repositories/home:/jloeser:/secureboot/xUbuntu_${SUITE_NUM}
-			#Signed-By: /usr/share/keyrings/secureboot.gpg
-			#Suites: /
-			#Enabled: yes
-			#Architectures: amd64
-			#EOF
-
-            apt-get -qq update
+            
+			apt-get -qq update
             apt-get -qq --yes --no-install-recommends install systemd-boot-efi
             apt-get -qq --yes --no-install-recommends install jq libpcsclite-dev libpcsclite1 golang-go sbsigntool
             go install github.com/foxboron/sbctl/cmd/sbctl@latest
@@ -2848,19 +2835,7 @@ cat >> ${ZFSBUILD}/root/Setup.sh << '__EOF__'
     # To build locally need libpcsclite-dev libpcsclite1 golang-go sbsigntool
     if [[ ! -v SECUREBOOT ]] || [[ "$SECUREBOOT" != "n" ]]; then
         if [[ -d /sys/firmware/efi ]] && ( [[ "${SUITE}" == "noble" ]] || [[ "${SUITE}" == "resolute" ]] ) ; then
-            ## Create apt sources for sbctl
-            #curl -fsSL https://download.opensuse.org/repositories/home:jloeser:secureboot/xUbuntu_${SUITE_NUM}/Release.key | gpg --dearmor | sudo tee /usr/share/keyrings/secureboot.gpg > /dev/null
-
-            ## NOTE: heredoc using TABS - be sure to use TABS if you make any changes
-            #cat > /etc/apt/sources.list.d/secureboot.sources <<- EOF
-			#	X-Repolib-Name: SecureBoot
-			#	Types: deb
-			#	URIs: http://download.opensuse.org/repositories/home:/jloeser:/secureboot/xUbuntu_${SUITE_NUM}
-			#	Signed-By: /usr/share/keyrings/secureboot.gpg
-			#	Suites: /
-			#	Enabled: yes
-			#	Architectures: amd64
-			#EOF
+           
 
             # NOTE: heredoc using TABS - be sure to use TABS if you make any changes
             # We put /var/lib/sbctl into /boot/efi/sbctl, so need a config file to reflect that
