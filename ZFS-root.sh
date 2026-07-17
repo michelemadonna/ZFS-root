@@ -1095,17 +1095,17 @@ partition_disks() {
             # LUKS Encrypted - should be partition type 8309 (Linux LUKS)
             # wipefs --all --force /dev/disk/by-id/${zfsdisks[${disk}]}-part${PARTITION_DATA}
             # zpool labelclear -f /dev/disk/by-id/${zfsdisks[${disk}]}-part${PARTITION_DATA}
-            sgdisk -n ${PARTITION_DATA}:0:50G -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:8300 /dev/disk/by-id/${zfsdisks[${disk}]}
+            sgdisk -n ${PARTITION_DATA}:0:49G -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:8300 /dev/disk/by-id/${zfsdisks[${disk}]}
             apt-get -qq --no-install-recommends --yes install cryptsetup
         else
         # Unencrypted or ZFS encrypted
-            sgdisk -n ${PARTITION_DATA}:0:50G -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:BF00 /dev/disk/by-id/${zfsdisks[${disk}]}
+            sgdisk -n ${PARTITION_DATA}:0:49G -c ${PARTITION_DATA}:"ZFS_${disk}" -t ${PARTITION_DATA}:BF00 /dev/disk/by-id/${zfsdisks[${disk}]}
         fi # DISCENC for LUKS
 
         #
         # Example partition creation for Windows - be sure to change :0:0 above to :0:+<some size> and +500G here to appropriate
         #
-        sgdisk -n ${PARTITION_WIND}:0:+50G -c ${PARTITION_WIND}:"WIN11_${disk}" -t ${PARTITION_WIND}:C12A /dev/disk/by-id/${zfsdisks[${disk}]}
+        sgdisk -n ${PARTITION_WIND}:0:+30G -c ${PARTITION_WIND}:"WIN11_${disk}" -t ${PARTITION_WIND}:C12A /dev/disk/by-id/${zfsdisks[${disk}]}
         sgdisk -n ${PARTITION_RCVR}:0:0     -c ${PARTITION_RCVR}:"RCVR_${disk}"  -t ${PARTITION_RCVR}:2700 /dev/disk/by-id/${zfsdisks[${disk}]}
     done
 
